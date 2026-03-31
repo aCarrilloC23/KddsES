@@ -17,22 +17,24 @@ export async function proxy(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
         set(name: string, value: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
+          // Solo se permiten (name, value) en Next.js 14+
+          request.cookies.set(name, value)
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.set({ name, value, ...options })
+          response.cookies.set(name, value)
         },
-        remove(name: string, options: CookieOptions) {
-          request.cookies.set({ name, value, ...options })
+        remove(name: string, _options: CookieOptions) {
+          // Solo se permite (name) en Next.js 14+
+          request.cookies.delete(name)
           response = NextResponse.next({
             request: {
               headers: request.headers,
             },
           })
-          response.cookies.delete({ name, ...options })
+          response.cookies.delete(name)
         },
       },
     }

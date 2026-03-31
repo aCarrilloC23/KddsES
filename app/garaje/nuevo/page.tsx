@@ -11,6 +11,7 @@ export default function NuevoCochePage() {
   const [cv, setCv] = useState('');
   const [foto, setFoto] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [mods, setMods] = useState(''); // Estado para el texto de modificaciones
   const router = useRouter();
 
   const handleUpload = async (e: React.FormEvent) => {
@@ -19,7 +20,7 @@ export default function NuevoCochePage() {
       alert("Marca, modelo y foto son obligatorios para registrar la máquina.");
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -32,7 +33,7 @@ export default function NuevoCochePage() {
       const fileExt = foto.name.split('.').pop();
       // Creamos un nombre único: ID_USUARIO-RANDOM.EXTENSION
       const fileName = `${user.id}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      
+
       const { error: uploadError } = await supabase.storage
         .from('car-photos') // <-- USAMOS TU BUCKET
         .upload(fileName, foto, {
@@ -41,12 +42,12 @@ export default function NuevoCochePage() {
         });
 
       if (uploadError) throw uploadError;
-      
+
       // 2. Obtener la URL pública de la foto
       const { data: publicUrlData } = supabase.storage
         .from('car-photos') // <-- USAMOS TU BUCKET
         .getPublicUrl(fileName);
-      
+
       fotoUrl = publicUrlData.publicUrl;
 
       // 3. Guardar los datos en la tabla 'cars'
@@ -56,15 +57,18 @@ export default function NuevoCochePage() {
           user_id: user.id,
           brand: marca,
           model: modelo,
-          specs: { cv: parseInt(cv) || 0 }, // Guardamos CV como número dentro del JSONB
+          specs: {
+            cv: parseInt(cv) || 0,
+            modificaciones: mods // Se guarda como string dentro del JSONB
+          },
           image_url: fotoUrl
         });
 
       if (insertError) throw insertError;
 
       // Todo ha ido bien, volvemos a la home
-      router.push('/');
-      router.refresh(); // Forzamos el refresco para que la home cargue los datos nuevos
+      router.push('/garaje'); // Redirige directamente al garaje
+      router.refresh();
 
     } catch (error: any) {
       console.error("Error al registrar coche:", error.message);
@@ -99,7 +103,7 @@ export default function NuevoCochePage() {
                   <>
                     <img src={URL.createObjectURL(foto)} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt="Preview del coche" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                       <Camera className="text-white" size={24} />
+                      <Camera className="text-white" size={24} />
                     </div>
                   </>
                 ) : (
@@ -132,6 +136,19 @@ export default function NuevoCochePage() {
               <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-1">Potencia (CV)</label>
               <input type="number" placeholder="Ej: 343" value={cv} onChange={(e) => setCv(e.target.value)}
                 className="w-full bg-zinc-950 border border-zinc-800/80 rounded-2xl py-4 px-5 text-white outline-none focus:border-orange-600/50 focus:ring-1 focus:ring-orange-600/20 transition-all placeholder:text-zinc-700" />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 ml-1">
+                Modificaciones / Specs Extra
+              </label>
+              <textarea
+                placeholder="Ej: Stage 1, Escape Scorpion, Llantas BBS, Suspensión roscada..."
+                value={mods}
+                onChange={(e) => setMods(e.target.value)}
+                rows={3}
+                className="w-full bg-zinc-950 border border-zinc-800/80 rounded-2xl py-4 px-5 text-white outline-none focus:border-orange-600/50 focus:ring-1 focus:ring-orange-600/20 transition-all placeholder:text-zinc-700 resize-none"
+              />
             </div>
           </div>
 
